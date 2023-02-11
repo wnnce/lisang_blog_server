@@ -153,6 +153,10 @@ public class ArticleServiceImpl implements ArticleService {
         //如果更新了article title  那么同步更新redis中到数据 获取分数 删除旧数据 保存新数据
         if (!article.getTitle().equals(oldArticle.getTitle())){
             Double scope = redisUtil.zScope(RedisUtil.BLOG_TOP_REDIS_KEY_PREFIX, oldArticle.getTitle());
+            //文章可能在未发布的状态下修改了标题 那么此时scope == null 添加判断 避免空指针异常
+            if (scope == null){
+                return;
+            }
             //通过旧文章数据的title来删除
             redisUtil.zSetDel(RedisUtil.BLOG_TOP_REDIS_KEY_PREFIX, oldArticle.getTitle());
             //添加新的数据
