@@ -2,7 +2,6 @@ package com.zeroxn.blog.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import com.zeroxn.blog.DTO.ArticleDTO;
 import com.zeroxn.blog.entity.*;
 import com.zeroxn.blog.exception.CustomException;
 import com.zeroxn.blog.mapper.ArticleMapper;
@@ -14,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,13 +31,9 @@ public class ArticleServiceImpl implements ArticleService {
     @Autowired
     private ArticleMapper articleMapper;
     @Autowired
-    private ArticleCategoryService articleCategoryService;
+    private LabelService labelService;
     @Autowired
-    private ArticleTagService articleTagService;
-    @Autowired
-    private TagService tagService;
-    @Autowired
-    private CategoryService categoryService;
+    private ArticleLabelService articleLabelService;
     @Autowired
     private RedisUtil redisUtil;
     @Autowired
@@ -48,35 +42,28 @@ public class ArticleServiceImpl implements ArticleService {
     /**
      * 获取到文章列表后 需要为文章列表中的每一条文章设置它的标签列表和分类列表
      * 如果文章的状态是已发布(status == 1)那么还需要通过文章的title从redis中获取最新的点击数
-     * @param status 文章状态 来判断是需要获取全部状态的文章还是获取指定状态的文章 可以为null
-     * @param pageNum 页码
+     *
+     * @param status   文章状态 来判断是需要获取全部状态的文章还是获取指定状态的文章 可以为null
+     * @param pageNum  页码
      * @param pageSize 每页记录条数
-     * @param title 文章标题 后台页面搜索文章需要 可以为null
+     * @param title    文章标题 后台页面搜索文章需要 可以为null
      * @return 返回封装好的ArticleDTO列表或空
      */
     @Override
     @Transactional(readOnly = true)
-    public PageInfo<ArticleDTO> getArticleList(Integer status, Integer pageNum, Integer pageSize, String title) {
+    public PageInfo<Article> getArticleList(Integer status, Integer pageNum, Integer pageSize, String title) {
         PageHelper.startPage(pageNum, pageSize);
         List<Article> articleList = articleMapper.getArticleList(status, title);
-        PageInfo pageInfo = new PageInfo<>(articleList);
-        List<ArticleDTO> articleDTOList = new ArrayList<>();
         for(Article article : articleList){
             //为 article 设置最新的点击数 只为已经发布的文章设置 未发布的文章在redis中也没有 数据库中的值就是最新值
             if (article.getStatus() == 1){
                 Integer clickNum = redisUtil.zScope(RedisUtil.BLOG_TOP_REDIS_KEY_PREFIX, article.getTitle()).intValue();
                 article.setClickNum(clickNum);
             }
-            ArticleDTO articleDTO = new ArticleDTO();
-            //copy对象
-            BeanUtils.copyProperties(article, articleDTO);
             //获取文章的标签和分类列表
-            articleDTO = getArticleTagAndCategoryList(articleDTO);
-            articleDTOList.add(articleDTO);
+            getArticleLabelList(article);
         }
-        //将pageInfo的list属性设置为新的list
-        pageInfo.setList(articleDTOList);
-        return pageInfo;
+        return new PageInfo<>(articleList);
     }
 
     /**
@@ -88,27 +75,22 @@ public class ArticleServiceImpl implements ArticleService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(cacheNames = "article", condition = "#isGetContent", key = "#id")
-    public ArticleDTO getArticleById(Integer id, boolean isGetContent) {
+    public Article getArticleById(Integer id, boolean isGetContent) {
         Article article = articleMapper.getArticleById(id, isGetContent);
         if(article == null){
             throw new CustomException("参数不存在");
         }
-        ArticleDTO articleDTO = new ArticleDTO();
-        BeanUtils.copyProperties(article, articleDTO);
         //为articleDTO添加分类和标签列表后再返回
-        return getArticleTagAndCategoryList(articleDTO);
+        return getArticleLabelList(article);
     }
 
     /**
      * 保存文章 先保存article对象 再分别保存包含的文章列表和标签列表
-     * @param articleDTO
+     * @param article
      */
     @Override
-    @Transactional
-    public void saveArticle(ArticleDTO articleDTO) {
-        Article article = new Article();
-        //copy对象 忽略categoryList、tagList属性
-        BeanUtils.copyProperties(articleDTO, article, "categoryList", "tagList");
+    @Transactional(rollbackFor = Exception.class)
+    public void saveArticle(Article article) {
         //设置状态为待发布
         article.setStatus(0);
         //设置创建时间为当前时间
@@ -121,35 +103,29 @@ public class ArticleServiceImpl implements ArticleService {
         if (article.getId() == null){
             throw new CustomException("数据库插入错误");
         }
-        //为DTO对象设置id为保存成功后返回的id
-        articleDTO.setId(article.getId());
         //保存其中的分类列表和标签列表
-        saveArticleCategoryAndArticleTag(articleDTO);
+        saveArticleLabel(article);
     }
 
     /**
      * 更新文章先更新articleDTO中的article对象到数据库 然后再通过文章id删除文章标签关系表和文章分类关系中所有关联该id的数据
      * 然后再调用保存分类、标签列表的方法 保存新的分类和标签列表 操作成功后再删除redis中的文章缓存
-     * @param articleDTO
+     * @param article
      */
     @Override
-    @Transactional
-    @CacheEvict(cacheNames = "article", key = "#articleDTO.id")
-    public void updateArticle(ArticleDTO articleDTO) {
-        Article article = new Article();
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(cacheNames = "article", key = "#article.id")
+    public void updateArticle(Article article) {
         //先通过id获取旧的文章数据 用来更新redis中的zSet数据
-        Article oldArticle = getArticleById(articleDTO.getId(), false);
-        BeanUtils.copyProperties(articleDTO, article, "categoryList", "tagList");
+        Article oldArticle = getArticleById(article.getId(), false);
         //设置更新时间为当前时间
         article.setUpdateTime(LocalDateTime.now());
         //更新文章表
         articleMapper.updateArticle(article);
-        //删除与当前文章关联的所有分类
-        articleCategoryService.deleteArticleCategoryByArticleId(article.getId());
-        //删除与当前文章关联的所有标签
-        articleTagService.deleteArticleTagByArticleId(article.getId());
+        //先删除与当前文章关联的所有分类/标签
+        articleLabelService.deleteArticleLabelByArticleId(article.getId());
         //保存新的分类和标签列表
-        saveArticleCategoryAndArticleTag(articleDTO);
+        saveArticleLabel(article);
         //如果更新了article title  那么同步更新redis中到数据 获取分数 删除旧数据 保存新数据
         if (!article.getTitle().equals(oldArticle.getTitle())){
             Double scope = redisUtil.zScope(RedisUtil.BLOG_TOP_REDIS_KEY_PREFIX, oldArticle.getTitle());
@@ -172,7 +148,7 @@ public class ArticleServiceImpl implements ArticleService {
      * @param status 文章状态
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void updateArticleType(Integer id, Boolean isComment, Integer status) {
         if(!BaseUtil.checkStatus(status)){
             throw new CustomException("状态参数错误");
@@ -201,15 +177,13 @@ public class ArticleServiceImpl implements ArticleService {
      * @param id 文章id
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     @CacheEvict(cacheNames = "article", key = "#id")
     public void deleteArticle(Integer id) {
         //删除文章
         articleMapper.deleteArticle(id);
-        //删除关联的分类列表
-        articleCategoryService.deleteArticleCategoryByArticleId(id);
-        //删除关联的标签列表
-        articleTagService.deleteArticleTagByArticleId(id);
+        //删除关联的分类/标签
+        articleLabelService.deleteArticleLabelByArticleId(id);
         //通过key来删除Artalk评论的评论页 key由 ARTALK_PAGE_KEY_PREFIX 前缀加上文章id组成
         artalkService.deleteArtalkPageByKey(ArtalkService.ARTALK_PAGE_KEY_PREFIX + id);
     }
@@ -282,78 +256,42 @@ public class ArticleServiceImpl implements ArticleService {
 
     /**
      * 通过分类id或标签id获取文章列表
-     * @param tagId 标签id 标签id和分类id一次只能传一个 两个同时传时 标签id优先 传入一个参数时另一个参数需要声明为null
-     * @param categoryId 分类id
+     * @param labelId 分类或者标签的id
      * @param pageNum 页码
      * @param pageSize 每页记录条数
      * @return
      */
     @Override
-    public List<Article> getArticleListByTagIdOrCategoryId(Integer tagId, Integer categoryId, Integer pageNum, Integer pageSize) {
-        List<Integer> articleIdList = null;
-        //如果标签id == null那么就通过分类id获取
-        if (tagId != null){
-            //通过标签id获取所关联的文章id列表
-            articleIdList = articleTagService.getArticleIdListByTagId(tagId);
-        }else {
-            //通过分类id获取所关联的文章id列表
-            articleIdList = articleCategoryService.getArticleIdListByCategoryId(categoryId);
-        }
+    public List<Article> getArticleListByLabelId(Integer labelId, Integer pageNum, Integer pageSize) {
+        List<Integer> articleIdList = articleLabelService.listArticleIdByLabelId(labelId);
         //通过文章id列表获取包含详细信息的文章列表 详细信息包含id、title、summary、cover
         return getArticleListByIdList(articleIdList, pageNum, pageSize);
     }
 
     /**
-     * 保存文章关联的分类列表和标签列表
-     * @param articleDTO
+     * 保存文章所关联的分类/标签列表
+     * @param article 包含分类/标签列表的文章对象
      */
-    public void saveArticleCategoryAndArticleTag(ArticleDTO articleDTO) {
-        List<Tag> tagList = articleDTO.getTagList();
-        //判断DTO对象中的tagList是否有内容
-        if (tagList != null && tagList.size() > 0){
-            List<ArticleTag> articleTagList = new ArrayList<>();
-            articleDTO.getTagList().forEach(tag -> {
-                //创建文章和标签关系表的实体对象
-                ArticleTag articleTag = new ArticleTag(null, articleDTO.getId(), tag.getId());
-                articleTagList.add(articleTag);
+    private void saveArticleLabel(Article article){
+        List<Label> labelList = article.getLabelList();
+        if (labelList != null && labelList.size() > 0){
+            List<ArticleLabel> articleLabelList = new ArrayList<>();
+            labelList.forEach(label -> {
+                ArticleLabel articleLabel = new ArticleLabel(null, article.getId(), label.getId());
+                articleLabelList.add(articleLabel);
             });
-            //向数据库中保存
-            articleTagService.saveArticleTagList(articleTagList);
-        }
-        //同上 保存DTO对象中的分类列表
-        List<Category> categoryList = articleDTO.getCategoryList();
-        if (categoryList != null && categoryList.size() > 0){
-            List<ArticleCategory> articleCategoryList = new ArrayList<>();
-            articleDTO.getCategoryList().forEach(category -> {
-                ArticleCategory articleCategory = new ArticleCategory(null, articleDTO.getId(), category.getId());
-                articleCategoryList.add(articleCategory);
-            });
-            articleCategoryService.saveArticleCategoryList(articleCategoryList);
+            articleLabelService.saveArticleLabelList(articleLabelList);
         }
     }
     //通过文章id列表返回包含详细信息的文章列表
-    public List<Article> getArticleListByIdList(List<Integer> articleIdList, Integer pageNum, Integer pageSize) {
+    private List<Article> getArticleListByIdList(List<Integer> articleIdList, Integer pageNum, Integer pageSize) {
         PageHelper.startPage(pageNum, pageSize);
         return articleMapper.getArticleListByIdList(articleIdList);
     }
-
-    /**
-     * 通过文章id获取文章所关联的分类和标签列表
-     * @param articleDTO 需要封装分类和标签列表的DTO对象
-     * @return 返回封装好的DTO对象
-     */
-    public ArticleDTO getArticleTagAndCategoryList(ArticleDTO articleDTO) {
-        //通过id获取所关联的标签列表
-        List<Integer> tagIdList = articleTagService.getTagIdListByArticleId(articleDTO.getId());
-        //只有标签列表中有内容才设置
-        if (tagIdList != null && tagIdList.size() > 0){
-            articleDTO.setTagList(tagService.getTagListByIdList(tagIdList));
-        }
-        //同上
-        List<Integer> categoryIdList = articleCategoryService.getCategoryIdListByArticleId(articleDTO.getId());
-        if (categoryIdList != null && categoryIdList.size() > 0){
-            articleDTO.setCategoryList(categoryService.getCategoryListByIdList(categoryIdList));
-        }
-        return articleDTO;
+    //通过文章id获取关联的文章分类/标签列表
+    private Article getArticleLabelList(Article article){
+        List<Integer> labelIdList = articleLabelService.listLabelIdByArticleId(article.getId());
+        article.setLabelList(labelService.listLabelByIdList(labelIdList));
+        return article;
     }
 }

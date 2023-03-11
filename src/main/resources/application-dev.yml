@@ -1,10 +1,10 @@
 spring:
   datasource:
-    url: 'jdbc:postgresql://10.10.10.120:5432/BLOG'
-    username:
-    password:
+    url: 'jdbc:postgresql://47.115.202.127:5432/blog'
+    username: crushcola
+    password: '00000...'
   redis:
-    host: 10.10.10.120
+    host: 47.115.202.127
     port: 6379
-    password:
+    password: '00000...'
     database: 0

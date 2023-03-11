@@ -1,8 +1,6 @@
 package com.zeroxn.blog.controller;
 
-import com.aliyuncs.utils.StringUtils;
 import com.github.pagehelper.PageInfo;
-import com.zeroxn.blog.DTO.ArticleDTO;
 import com.zeroxn.blog.entity.Article;
 import com.zeroxn.blog.exception.CustomException;
 import com.zeroxn.blog.service.ArticleService;
@@ -37,10 +35,10 @@ public class ArticleController {
      * @return 返回文章列表和详细分页信息或空
      */
     @GetMapping
-    public Result<PageInfo<ArticleDTO>> getArticleListAll(@RequestParam("page") Integer pageNum,
+    public Result<PageInfo<Article>> getArticleListAll(@RequestParam("page") Integer pageNum,
                                                           @RequestParam("size") Integer pageSize,
                                                           @RequestParam(value = "key", required = false) String title){
-        PageInfo<ArticleDTO> pageInfo = articleService.getArticleList(null, pageNum, pageSize, title);
+        PageInfo<Article> pageInfo = articleService.getArticleList(null, pageNum, pageSize, title);
         return Result.success(pageInfo);
     }
 
@@ -50,20 +48,20 @@ public class ArticleController {
      * @return 返回文章对象
      */
     @GetMapping("/{id}")
-    public Result<ArticleDTO> getArticle(@PathVariable("id") Integer id){
-        ArticleDTO articleDTO = articleService.getArticleById(id, true);
-        return Result.success(articleDTO);
+    public Result<Article> getArticle(@PathVariable("id") Integer id){
+        Article article = articleService.getArticleById(id, true);
+        return Result.success(article);
     }
 
     /**
      * 添加文章
-     * @param articleDTO 封装的文章DTO对象 里面包含文章对象和分类以及标签列表
+     * @param article 封装的文章对象 里面包含文章对象和分类以及标签列表
      * @return 反正操作成功或者失败
      */
     @PostMapping
-    public Result<String> addArticle(@RequestBody ArticleDTO articleDTO){
-        if (articleDTO.getTitle() != null){
-            articleService.saveArticle(articleDTO);
+    public Result<String> addArticle(@RequestBody Article article){
+        if (article.getTitle() != null){
+            articleService.saveArticle(article);
             return Result.success("添加成功");
         }
         return Result.error("标题不能为空");
@@ -71,13 +69,13 @@ public class ArticleController {
 
     /**
      * 通过id更新文章
-     * @param articleDTO 封装好的对象
+     * @param article 封装好的对象
      * @return 返回操作成功或者失败
      */
     @PutMapping
-    public Result<String> updateArticle(@RequestBody ArticleDTO articleDTO){
-        if(articleDTO.getTitle() != null && articleDTO.getId() != null){
-            articleService.updateArticle(articleDTO);
+    public Result<String> updateArticle(@RequestBody Article article){
+        if(article.getTitle() != null && article.getId() != null){
+            articleService.updateArticle(article);
             return Result.success("更新成功");
         }
         return Result.error("ID和标题不能为空");
@@ -114,35 +112,21 @@ public class ArticleController {
      * @return 返回文章列表或空
      */
     @GetMapping("/list")
-    public Result<PageInfo<ArticleDTO>> getArticleList(@RequestParam("page") Integer pageNum){
-        PageInfo<ArticleDTO> pageInfo = articleService.getArticleList(1, pageNum, 5, null);
+    public Result<PageInfo<Article>> getArticleList(@RequestParam("page") Integer pageNum){
+        PageInfo<Article> pageInfo = articleService.getArticleList(1, pageNum, 5, null);
         return Result.success(pageInfo);
     }
 
     /**
-     * 通过分类id获取所关联的文章列表
-     * @param categoryId 分类id
+     * 通过分类或者标签id获取所关联的文章列表
+     * @param labelId 分类或者标签id
      * @param page 页码
      * @return 返回关联的文章列表和详细分页信息
      */
-    @GetMapping("/list/category")
-    public Result<PageInfo<Article>> getArticleListByCategoryId(@RequestParam("id") Integer categoryId,
+    @GetMapping("/list/label")
+    public Result<PageInfo<Article>> getArticleListByCategoryId(@RequestParam("id") Integer labelId,
                                                                 @RequestParam("page") Integer page){
-        List<Article> articleList = articleService.getArticleListByTagIdOrCategoryId(null, categoryId, page, 10);
-        PageInfo<Article> info = new PageInfo<>(articleList);
-        return Result.success(info);
-    }
-
-    /**
-     * 通过标签id获取所关联的文章列表
-     * @param tagId 标签id
-     * @param page 页码
-     * @return 返回关联的文章列表和详细分页信息
-     */
-    @GetMapping("/list/tag")
-    public Result<PageInfo<Article>> getArticleListByTagId(@RequestParam("id") Integer tagId,
-                                                                @RequestParam("page") Integer page){
-        List<Article> articleList = articleService.getArticleListByTagIdOrCategoryId(tagId, null, page, 10);
+        List<Article> articleList = articleService.getArticleListByLabelId(labelId, page, 10);
         PageInfo<Article> info = new PageInfo<>(articleList);
         return Result.success(info);
     }
@@ -154,23 +138,23 @@ public class ArticleController {
      */
     @GetMapping("/info/{id}")
     public Result<Map<String, Object>> getArticleInfo(@PathVariable("id") Integer id){
-        ArticleDTO articleDTO = articleService.getArticleById(id, true);
-        if (articleDTO == null){
+        Article article = articleService.getArticleById(id, true);
+        if (article == null){
             throw new CustomException("对象不存在");
         }
         //从redis中获取文章最新的点击数 因为service层加了缓存 所以放在controller层来设置
-        redisUtil.zSetIncrement(RedisUtil.BLOG_TOP_REDIS_KEY_PREFIX, articleDTO.getTitle(), 1.0);
-        Double clickNum = redisUtil.zScope(RedisUtil.BLOG_TOP_REDIS_KEY_PREFIX, articleDTO.getTitle());
-        articleDTO.setClickNum(clickNum.intValue());
+        redisUtil.zSetIncrement(RedisUtil.BLOG_TOP_REDIS_KEY_PREFIX, article.getTitle(), 1.0);
+        Double clickNum = redisUtil.zScope(RedisUtil.BLOG_TOP_REDIS_KEY_PREFIX, article.getTitle());
+        article.setClickNum(clickNum.intValue());
         //设置文章的上一篇和下一篇
         Map<String, Object> returnMap = new HashMap<>(3);
         //往map中添加当前文章
-        returnMap.put("article", articleDTO);
+        returnMap.put("article", article);
         //添加当前文章的上一篇文章
-        Article upArticle = articleService.getCurrentArticleUpArticle(articleDTO.getCreateTime());
+        Article upArticle = articleService.getCurrentArticleUpArticle(article.getCreateTime());
         returnMap.put("up", upArticle);
         //添加当前文章是下一篇文章
-        Article downArticle = articleService.getCurrentArticleDownArticle(articleDTO.getCreateTime());
+        Article downArticle = articleService.getCurrentArticleDownArticle(article.getCreateTime());
         returnMap.put("down", downArticle);
         return Result.success(returnMap);
     }

@@ -8,41 +8,47 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * @author ran
- * @date
- * 文章分类实体类 对应数据库中的 tb_category 表
+ * @Author lisang
+ * @Date 2023/3/10 下午6:52
+ * @Version 1.0
+ *
+ * 文章对应的标签和分类 对应数据库的 tb_table 表
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Category implements Serializable {
+public class Label implements Serializable {
     /**
-     * 分类id
+     * id 主键
      */
     private Integer id;
     /**
-     * 分类名称
+     * 名称
      */
     private String name;
     /**
-     * 分类创建时间
+     * 创建时间
      */
     private LocalDateTime createTime;
     /**
-     * 分类状态 1 启用 0 禁用
+     * 状态 0 禁用 1启用
      */
     private Integer status;
     /**
-     * 关联的文章数量 数据库中没有该字段
+     * 类型 1：标签 2：分类
+     */
+    private Integer flag;
+    /**
+     * 该标签/分类对应的文章数量
      */
     private Integer articleNum;
 
-    public Category(Integer id, String name) {
+    public Label(Integer id, String name) {
         this.id = id;
         this.name = name;
     }
 
-    public Category(Integer id) {
+    public Label(Integer id) {
         this.id = id;
     }
 }

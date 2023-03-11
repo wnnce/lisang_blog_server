@@ -62,7 +62,7 @@ public class ArtalkServiceImpl implements ArtalkService {
      * @param isCheckId 是否检查id 值为true时会先从数据库中获取这个id的对象 为空则抛出异常 如为false则不检查
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void deleteArtalkCommentById(Integer id, boolean isCheckId) {
         //通过isCheckId参数来判断id是否有对应对象
         if (isCheckId){
@@ -100,7 +100,7 @@ public class ArtalkServiceImpl implements ArtalkService {
      * @param id 评论页id
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void deleteArtalkPageById(Integer id) {
         ArtalkPage artalkPage = artalkMapper.getArtalkPageById(id);
         if (artalkPage == null){
@@ -116,7 +116,7 @@ public class ArtalkServiceImpl implements ArtalkService {
      * @param key 评论页的key属性
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void deleteArtalkPageByKey(String key) {
         artalkMapper.deleteArtalkCommentByIdOrPageKey(null, key);
         artalkMapper.deleteArtalkPageByIdOrKey(null, key);
@@ -135,7 +135,7 @@ public class ArtalkServiceImpl implements ArtalkService {
      * @param id 评论用户id
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void deleteArtalkUserById(Integer id) {
         ArtalkUser artalkUser = artalkMapper.getArtalkUserById(id);
         if (artalkUser == null){

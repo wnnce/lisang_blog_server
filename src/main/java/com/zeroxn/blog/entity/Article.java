@@ -7,6 +7,7 @@ import lombok.ToString;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * @author ran
@@ -58,6 +59,10 @@ public class Article implements Serializable {
      * 文章状态 1 已发布 0 待发布
      */
     private Integer status;
+    /**
+     * 文章对应的分类/标签列表
+     */
+    private List<Label> labelList;
 
     public Article(Integer id, String title, String summary, String cover) {
         this.id = id;

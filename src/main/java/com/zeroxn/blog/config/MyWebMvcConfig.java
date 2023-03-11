@@ -8,6 +8,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * @author lisang
+ */
 @Configuration
 public class MyWebMvcConfig implements WebMvcConfigurer {
     /*@Override
@@ -26,12 +29,12 @@ public class MyWebMvcConfig implements WebMvcConfigurer {
         //添加鉴权拦截器
         registry.addInterceptor(new SaInterceptor(handler -> {
             //拦截所有路径
-            SaRouter.match("/user/**", "article/**", "/category/**", "/tag/**", "links/**", "/artalk/**", "file/**",
+            SaRouter.match("/user/**", "article/**", "/label/**", "links/**", "/artalk/**", "file/**",
                             "site/**")
                     //放行前台页面需要的接口
                     .notMatch("/user/sendCode", "/user/login", "/user/info", "/article/search", "/article/list",
-                            "/article/top", "/article/info/*", "/article/list/tag", "/article/list/category", "/category/list",
-                            "/category/info/*", "/tag/list", "/tag/info/*", "/user/link/list", "/links/list")
+                            "/article/top", "/article/info/*", "/article/list/tag", "/article/list/category",
+                            "/label/list", "/label/info/*", "/user/link/list", "/links/list")
                     //使用StpUtil进行鉴权
                     .check(r -> StpUtil.checkLogin());
         }));

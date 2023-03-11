@@ -47,7 +47,7 @@ mybatis:
     # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 sa-token:
   token-name: lisangBlog
-  timeout: 259200
+  timeout: -1
   is-concurrent: false
   token-style: uuid
   is-log: false

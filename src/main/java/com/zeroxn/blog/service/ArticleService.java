@@ -1,7 +1,6 @@
 package com.zeroxn.blog.service;
 
 import com.github.pagehelper.PageInfo;
-import com.zeroxn.blog.DTO.ArticleDTO;
 import com.zeroxn.blog.entity.Article;
 
 import java.time.LocalDateTime;
@@ -21,7 +20,7 @@ public interface ArticleService {
      * @param title 文章标题 后台页面搜索文章需要 可以为null
      * @return 返回ArticleDTO列表和详细分页数据
      */
-    PageInfo<ArticleDTO> getArticleList(Integer status, Integer pageNum, Integer pageSize, String title);
+    PageInfo<Article> getArticleList(Integer status, Integer pageNum, Integer pageSize, String title);
 
     /**
      * 通过id获取文章详情包含分类列表和标签列表
@@ -29,19 +28,19 @@ public interface ArticleService {
      * @param isGetContent 判断是否获取文章正文 某些时候需要判断文章是否存在 而文章正文可能非常长 可能会影响性能
      * @return 返回文章对象
      */
-    ArticleDTO getArticleById(Integer id, boolean isGetContent);
+    Article getArticleById(Integer id, boolean isGetContent);
 
     /**
      * 保存文章 封装对象是DTO 里面除了文章对象外还有分类列表和标签列表
-     * @param articleDTO
+     * @param article
      */
-    void saveArticle(ArticleDTO articleDTO);
+    void saveArticle(Article article);
 
     /**
      * 更新文章
-     * @param articleDTO
+     * @param article
      */
-    void updateArticle(ArticleDTO articleDTO);
+    void updateArticle(Article article);
 
     /**
      * 通过更新文章状态 更新文章的status和isComment属性
@@ -99,11 +98,10 @@ public interface ArticleService {
 
     /**
      * 根据标签id或分类id获取所关联的文章列表
-     * @param tagId 标签id 标签id和分类id一次只能传一个 两个同时传时 标签id优先 传入一个参数时另一个参数需要声明为null
-     * @param categoryId 分类id
+     * @param labelId 分类或者标签的id
      * @param pageNum 页码
      * @param pageSize 每页记录条数
      * @return 返回关联的文章列表或空
      */
-    List<Article> getArticleListByTagIdOrCategoryId(Integer tagId, Integer categoryId, Integer pageNum, Integer pageSize);
+    List<Article> getArticleListByLabelId(Integer labelId, Integer pageNum, Integer pageSize);
 }
