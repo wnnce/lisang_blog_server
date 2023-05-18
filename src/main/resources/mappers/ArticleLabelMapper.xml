@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zeroxn.blog.web.article.mapper.ArticleLabelMapper">
+    <select id="countArticleByLabelId" resultType="integer">
+        select count(id) from tb_article_label where label_id = #{labelId}
+    </select>
+    <select id="listLabelIdByArticleId" resultType="integer">
+        select label_id from tb_article_label where article_id = #{articleId}
+    </select>
+    <select id="listArticleIdByLabelId" resultType="integer">
+        select article_id from tb_article_label where label_id = #{labelId}
+    </select>
+    <insert id="saveArticleLabelList">
+        insert into tb_article_label (article_id, label_id) values
+        <foreach collection="articleLabelList" item="item" separator=",">
+            (#{item.articleId}, #{item.labelId})
+        </foreach>
+    </insert>
+    <delete id="deleteArticleLabelByArticleId">
+        delete from tb_article_label where article_id = #{articleId}
+    </delete>
+</mapper>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zeroxn.blog.web.artalk.ArtalkMapper">
+    <resultMap id="artalkCommentMap" type="com.zeroxn.blog.entity.artalk.ArtalkComment">
+        <id column="id" property="id" />
+        <!-- 使用自定义的类型转换器 -->
+        <result column="created_at" property="createdAt" typeHandler="com.zeroxn.blog.core.mybatis.typehandler.MyLocalDateTimeTypeHandler"/>
+        <result column="updated_at" property="updatedAt" typeHandler="com.zeroxn.blog.core.mybatis.typehandler.MyLocalDateTimeTypeHandler"/>
+    </resultMap>
+    <select id="getArtalkCommentList" resultMap="artalkCommentMap">
+        select * from artalk_comments order by created_at desc
+    </select>
+
+    <select id="getArtalkCommentListByUserIdOrRid" resultMap="artalkCommentMap">
+        select * from artalk_comments
+        <where>
+            <choose>
+                <when test="userId != null">
+                    user_id = #{userId}
+                </when>
+                <when test="rid != null">
+                    rid = #{rid}
+                </when>
+            </choose>
+        </where>
+    </select>
+
+    <select id="getArtalkCommentContentAndUserIdById" resultType="ArtalkComment">
+        select id, content, user_id from artalk_comments where id = #{id}
+    </select>
+
+    <select id="getArtalkCommentById" resultMap="artalkCommentMap">
+        select * from artalk_comments where id = #{id}
+    </select>
+
+    <update id="updateArtalkCommentType">
+        update artalk_comments
+        set is_collapsed = #{isCollapsed}, is_pending = #{isPending}, is_pinned = #{isPinned}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteArtalkCommentByIdOrPageKey">
+        delete from artalk_comments
+        <where>
+            <choose>
+                <when test="id != null">
+                    id = #{id}
+                </when>
+                <when test="pageKey != null">
+                    page_key = #{pageKey}
+                </when>
+            </choose>
+        </where>
+    </delete>
+
+    <resultMap id="artalkPageMap" type="com.zeroxn.blog.entity.artalk.ArtalkPage">
+        <id column="id" property="id" />
+        <result column="created_at" property="createdAt" typeHandler="com.zeroxn.blog.core.mybatis.typehandler.MyLocalDateTimeTypeHandler"/>
+        <result column="updated_at" property="updatedAt" typeHandler="com.zeroxn.blog.core.mybatis.typehandler.MyLocalDateTimeTypeHandler"/>
+    </resultMap>
+    <select id="getArtalkPageList" resultMap="artalkPageMap">
+        select * from artalk_pages order by created_at desc
+    </select>
+
+    <select id="getArtalkPageById" resultMap="artalkPageMap">
+        select * from artalk_pages where id = #{id}
+    </select>
+
+    <select id="getArtalkPageTitleByPageKey" resultType="string">
+        select title from artalk_pages where key = #{pageKey}
+    </select>
+
+    <update id="updateArtalkPageType">
+        update artalk_pages set admin_only = #{adminOnly} where id = #{id};
+    </update>
+
+    <delete id="deleteArtalkPageByIdOrKey">
+        delete from artalk_pages
+        <where>
+            <choose>
+                <when test="id != null">
+                    id = #{id}
+                </when>
+                <when test="key != null">
+                    key = #{key}
+                </when>
+            </choose>
+        </where>
+    </delete>
+
+
+    <resultMap id="artalkUserMap" type="com.zeroxn.blog.entity.artalk.ArtalkUser">
+        <id column="id" property="id" />
+        <result column="created_at" property="createdAt" typeHandler="com.zeroxn.blog.core.mybatis.typehandler.MyLocalDateTimeTypeHandler"/>
+        <result column="updated_at" property="updatedAt" typeHandler="com.zeroxn.blog.core.mybatis.typehandler.MyLocalDateTimeTypeHandler"/>
+    </resultMap>
+    <select id="getArtalkUserList" resultMap="artalkUserMap">
+        select * from artalk_users order by created_at desc
+    </select>
+
+    <select id="getArtalkUserById" resultMap="artalkUserMap">
+        select * from artalk_users where id = #{id}
+    </select>
+
+    <select id="getArtalkUserNameById" resultType="string">
+        select name from artalk_users where id = #{id}
+    </select>
+
+    <delete id="deleteArtalkUserById">
+        delete from artalk_users where id = #{id}
+    </delete>
+</mapper>

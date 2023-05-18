@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zeroxn.blog.web.user.mapper.UserMapper">
+    <select id="login" resultType="integer">
+        select id from tb_user where username = #{username} and password = #{passwd}
+    </select>
+    <select id="getEmail" resultType="String">
+        select email from tb_user
+    </select>
+    <select id="getUserAll" resultType="User">
+        select id, author, avatar, username, email from tb_user
+    </select>
+    <select id="getUser" resultType="User">
+        select author, avatar from tb_user
+    </select>
+    <select id="getUserByIdAndPasswd" resultType="integer">
+        select id from tb_user where id = #{id} and password = #{passwd}
+    </select>
+    <update id="updateUserPasswd">
+        update tb_user set password = #{passwd} where id = #{id}
+    </update>
+    <update id="updateUser">
+        update tb_user set
+        author = #{author}, username = #{username}, email = #{email}, avatar = #{avatar}
+        where id = #{id}
+    </update>
+</mapper>

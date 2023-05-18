@@ -1,0 +1,53 @@
+server:
+  port: 7746
+
+spring:
+  profiles:
+    active: prod
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    # 配置druid连接池 和sql监控
+    druid:
+      filters: stat
+      # 连接池中最大线程数
+      max-active: 8
+      # 开始web监控
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: '*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*'
+      # 配置druid后台页面
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        login-username:
+        login-password:
+        reset-enable: true
+        # 配置ip白名单
+        allow: ''
+      # 配置spring监控
+      aop-patterns: com.zeroxn.blog.controller.*
+  servlet:
+    # 文件上传解析器
+    multipart:
+      enabled: true
+      # 最大上传文件 2MB
+      max-file-size: 2MB
+  cache:
+    redis:
+      key-prefix: 'BLOG:CACHE:'
+      time-to-live: 7200000
+mybatis:
+  mapper-locations: classpath:mappers/*.xml
+  type-aliases-package: com.zeroxn.blog.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    # 是否打印sql
+    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+sa-token:
+  token-name: lisangBlog
+  timeout: -1
+  is-concurrent: false
+  token-style: uuid
+  is-log: false

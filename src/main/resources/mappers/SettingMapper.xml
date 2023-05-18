@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zeroxn.blog.web.setting.SettingMapper">
+    <select id="getSiteSetting" resultType="Setting">
+        select id, notice, record, date, protocol, explanation, update_time from tb_setting
+    </select>
+    <select id="getSiteAbout" resultType="String">
+        select about from tb_setting
+    </select>
+    <update id="updateSiteSetting">
+        update tb_setting
+        <set>
+            notice = #{notice}, record = #{record}, date = #{date}, protocol = #{protocol}, explanation = #{explanation},
+            update_time = #{updateTime}
+        </set>
+        where id = #{id}
+    </update>
+    <update id="updateSiteAbout">
+        update tb_setting set about = #{about} where id = id;
+    </update>
+</mapper>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zeroxn.blog.web.link.LinkMapper">
+    <select id="getLinkListByIsShow" resultType="Link">
+        select * from tb_links
+        <where>
+            <if test="isShow != null">
+                is_show = #{isShow}
+            </if>
+        </where>
+        order by create_time
+    </select>
+    <insert id="saveLink">
+        insert into
+        tb_links (title, summary, username, url, logo_url, create_time, update_time, is_show)
+        values (#{title}, #{summary}, #{username}, #{url}, #{logoUrl}, #{createTime}, #{updateTime}, #{isShow})
+    </insert>
+    <update id="updateLinkById">
+        update tb_links
+        set title = #{title}, summary = #{summary}, username = #{username}, url = #{url}, logo_url = #{logoUrl}, update_time = #{updateTime}
+        where id = #{id}
+    </update>
+    <update id="updateLinkIsShowById">
+        update tb_links set is_show = #{isShow} where id = #{id}
+    </update>
+    <delete id="deleteLinkById">
+        delete from tb_links where id = #{id}
+    </delete>
+</mapper>
