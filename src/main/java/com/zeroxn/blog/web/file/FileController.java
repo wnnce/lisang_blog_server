@@ -1,7 +1,7 @@
 package com.zeroxn.blog.web.file;
 
 import com.aliyuncs.utils.StringUtils;
-import com.zeroxn.blog.core.utils.AliyunUtil;
+import com.zeroxn.blog.core.utils.AliyunOssService;
 import com.zeroxn.blog.core.utils.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +21,10 @@ import java.util.UUID;
 @Slf4j
 @RequestMapping("/file")
 public class FileController {
+    private final AliyunOssService aliyunOssService;
+    public FileController(AliyunOssService aliyunOssService) {
+        this.aliyunOssService = aliyunOssService;
+    }
     /**
      * 调用Aliyun OSS进行文件上传
      * @param file 前端传过来的文件流
@@ -37,7 +41,7 @@ public class FileController {
             fileName.append(name.substring(name.lastIndexOf(".")));
             try{
                 //调用阿里云的上传api 返回文件链接
-                String fileUrl = AliyunUtil.fileUpload(String.valueOf(fileName), file.getInputStream());
+                String fileUrl = aliyunOssService.fileUpload(String.valueOf(fileName), file.getInputStream());
                 //如果不为空就返回链接给前端
                 if(!StringUtils.isEmpty(fileUrl)){
                     log.info("图片上传成功，链接：" + fileUrl);

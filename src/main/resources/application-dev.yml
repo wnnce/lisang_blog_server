@@ -8,3 +8,10 @@ spring:
     port:
     password:
     database:
+aliyun:
+  oss:
+    endpoint:
+    access-key:
+    access-secret:
+    bucket-name:
+    prefix:
