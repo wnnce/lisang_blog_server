@@ -41,8 +41,6 @@ public class AliyunOssService {
             if (result.getResponse().getStatusCode() == 200){
                 //返回文件链接
                 return "https://" + properties.getBucketName() + "." + properties.getEndpoint() + "/" + fileName;
-            }else{
-                return null;
             }
         } catch (OSSException oe) {
             System.out.println("Caught an OSSException, which means your request made it to OSS, "
@@ -56,10 +54,6 @@ public class AliyunOssService {
                     + "a serious internal problem while trying to communicate with OSS, "
                     + "such as not being able to access the network.");
             System.out.println("Error Message:" + ce.getMessage());
-        } finally {
-            if (ossClient != null) {
-                ossClient.shutdown();
-            }
         }
         return null;
     }
